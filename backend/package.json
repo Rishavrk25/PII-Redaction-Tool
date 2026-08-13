@@ -5,8 +5,7 @@
   "main": "src/cli.js",
   "scripts": {
     "start": "node src/cli.js",
-    "start:server": "node src/server.js",
-    "start:frontend": "cd frontend && npm run dev",
+    "dev": "node src/server.js",
     "redact": "node src/cli.js --input input/\"Red Herring Prospectus(1).docx\" --output output/Red_Herring_Prospectus_Redacted.docx --report reports/pii-audit.json",
     "dry-run": "node src/cli.js --input input/\"Red Herring Prospectus(1).docx\" --dry-run",
     "evaluate": "node src/evaluation/evaluator.js",
