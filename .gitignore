@@ -1,0 +1,9 @@
+node_modules/
+output/
+reports/
+*.log
+.DS_Store
+scratch_*.js
+scratch_*.txt
+uploads/
+frontend/node_modules/
