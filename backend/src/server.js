@@ -43,7 +43,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
   credentials: false
 }));
-app.options('*', cors());
+app.options('/*', cors());
 app.use(express.json());
 
 app.use('/download', express.static(outputDir));
