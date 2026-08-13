@@ -54,7 +54,8 @@ function App() {
     formData.append('threshold', threshold.toString());
 
     try {
-      const response = await fetch('http://localhost:3000/api/redact', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/redact`, {
         method: 'POST',
         body: formData,
       });
@@ -178,14 +179,14 @@ function App() {
 
                 <div className="flex gap-4">
                   <a 
-                    href={`http://localhost:3000${result.downloadUrl}`}
+                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${result.downloadUrl}`}
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     <Download size={18} />
                     Download Redacted DOCX
                   </a>
                   <a 
-                    href={`http://localhost:3000${result.reportUrl}`}
+                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${result.reportUrl}`}
                     className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 px-5 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     <Download size={18} />
@@ -197,7 +198,7 @@ function App() {
 
           </div>
 
-          <div className="md:col-span-1 flex flex-col gap-6">
+          <div className="md:col-span-1 flex flex-col gap-6 md:flex">
             
             <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
               <h3 className="font-semibold text-slate-800 mb-4">Configuration</h3>

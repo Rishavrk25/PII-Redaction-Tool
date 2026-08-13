@@ -1,7 +1,7 @@
 /**
  * Backend API Server for PII Redaction Tool.
  */
-
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
