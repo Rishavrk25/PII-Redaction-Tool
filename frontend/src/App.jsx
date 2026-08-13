@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2, Download, ShieldCheck } from 'lucide-react';
 
 function App() {
@@ -9,6 +9,11 @@ function App() {
   const [result, setResult] = useState(null);
   
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    fetch(`${apiUrl}/api/health`).catch(() => console.log('Waking up backend...'));
+  }, []);
 
   const handleFileChange = (e) => {
     const selected = e.target.files[0];

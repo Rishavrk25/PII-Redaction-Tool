@@ -37,7 +37,13 @@ const upload = multer({
   }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+  credentials: false
+}));
+app.options('*', cors());
 app.use(express.json());
 
 app.use('/download', express.static(outputDir));
