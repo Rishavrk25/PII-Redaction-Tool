@@ -1,6 +1,3 @@
-/**
- * Tests for EmailDetector.
- */
 
 const EmailDetector = require('../../src/detectors/emailDetector');
 
@@ -39,7 +36,7 @@ describe('EmailDetector', () => {
   test('does not detect email-like patterns in URLs', () => {
     const text = 'Visit https://user@example.com/page';
     const results = detector.detect(text);
-    // Should not detect because preceded by http
+    
     expect(results.length).toBe(0);
   });
 

@@ -1,6 +1,3 @@
-/**
- * Tests for PhoneDetector.
- */
 
 const PhoneDetector = require('../../src/detectors/phoneDetector');
 

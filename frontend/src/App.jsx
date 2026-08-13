@@ -4,7 +4,7 @@ import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2, Download, Shi
 function App() {
   const [file, setFile] = useState(null);
   const [threshold, setThreshold] = useState(0.7);
-  const [status, setStatus] = useState('idle'); // idle, uploading, processing, success, error
+  const [status, setStatus] = useState('idle'); 
   const [errorMsg, setErrorMsg] = useState('');
   const [result, setResult] = useState(null);
   

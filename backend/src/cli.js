@@ -1,16 +1,5 @@
 #!/usr/bin/env node
 
-/**
- * CLI entry point for the PII Redaction Tool.
- *
- * Usage:
- *   node src/cli.js --input input/prospectus.docx --output output/redacted.docx
- *   node src/cli.js --input input/prospectus.docx --dry-run
- *   node src/cli.js --input input/prospectus.docx --output output/redacted.docx --threshold 0.90 --report reports/pii-audit.json --verbose
- *
- * @module cli
- */
-
 const { Command } = require('commander');
 const path = require('path');
 const { redact } = require('./redactor');
@@ -33,30 +22,26 @@ program.parse(process.argv);
 
 const opts = program.opts();
 
-// Validate
 if (!opts.input) {
   log.error('--input is required');
   process.exit(1);
 }
 
 if (!opts.dryRun && !opts.output) {
-  // Default output path
+  
   const inputBase = path.basename(opts.input, path.extname(opts.input));
   opts.output = path.join('output', `${inputBase.replace(/\s+/g, '_')}_Redacted.docx`);
 }
 
-// Resolve paths
 opts.input = path.resolve(opts.input);
 if (opts.output) opts.output = path.resolve(opts.output);
 if (opts.report) opts.report = path.resolve(opts.report);
 
-// Check that output doesn't overwrite input
 if (opts.output && path.resolve(opts.input) === path.resolve(opts.output)) {
   log.error('Output path must be different from input path. The original document must never be overwritten.');
   process.exit(1);
 }
 
-// Run
 (async () => {
   try {
     const result = await redact({
@@ -68,7 +53,6 @@ if (opts.output && path.resolve(opts.input) === path.resolve(opts.output)) {
       verbose: opts.verbose,
     });
 
-    // Print summary
     console.log('\n╔══════════════════════════════════╗');
     console.log('║     PII Redaction Summary        ║');
     console.log('╠══════════════════════════════════╣');

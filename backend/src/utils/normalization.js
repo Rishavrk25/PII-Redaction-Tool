@@ -1,16 +1,4 @@
-/**
- * Normalization utilities for entity comparison and deduplication.
- * Ensures that the same real-world entity (written in different formats)
- * maps to a single canonical form for consistent replacement.
- * @module utils/normalization
- */
 
-/**
- * Normalize a person name for comparison.
- * Collapses whitespace, lowercases, removes titles and suffixes.
- * @param {string} name - Raw name string
- * @returns {string} Normalized name key
- */
 function normalizeName(name) {
   if (!name) return '';
   return name
@@ -83,11 +71,6 @@ function normalizeGeneric(text) {
   return text.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-/**
- * Get the normalization function for a given PII type.
- * @param {string} type - PII type (PERSON, EMAIL, PHONE, etc.)
- * @returns {Function} Normalization function
- */
 function getNormalizer(type) {
   const normalizers = {
     PERSON: normalizeName,

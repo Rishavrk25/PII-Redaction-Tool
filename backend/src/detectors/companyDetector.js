@@ -1,43 +1,21 @@
-/**
- * Company/organization name detector.
- *
- * Strategy:
- *   1. Suffix-based: detect patterns ending in "Limited", "Ltd.", "Pvt. Ltd.", etc.
- *   2. Context-driven: extract companies from labels like "Registrar:", "Bankers:"
- *   3. Known-company seeding: search for discovered companies everywhere
- *   4. Specific bank/institution patterns
- *
- * Does NOT redact regulatory/government bodies (SEBI, RBI, etc.) as these
- * are public entities, not PII-sensitive organizations.
- *
- * @module detectors/companyDetector
- */
 
 const BaseDetector = require('./baseDetector');
 
-/**
- * Regex to match company names ending with organizational suffixes.
- * Captures 1-6 capitalized words before the suffix.
- */
 const COMPANY_SUFFIX_PATTERNS = [
-  // "XYZ Private Limited" / "XYZ Pvt. Ltd."
+  
   /\b([A-Z][a-zA-Z&.'()-]+(?:\s+[A-Z][a-zA-Z&.'()-]+){0,5})\s+(?:Private\s+Limited|Pvt\.?\s*Ltd\.?)\b/g,
-  // "XYZ Limited" / "XYZ Ltd." (but excluding Private Limited which is caught above)
+  
   /\b([A-Z][a-zA-Z&.'()-]+(?:\s+[A-Z][a-zA-Z&.'()-]+){0,5})\s+(?:Limited|Ltd\.?)\b/g,
-  // "XYZ LLP"
+  
   /\b([A-Z][a-zA-Z&.'()-]+(?:\s+[A-Z][a-zA-Z&.'()-]+){0,5})\s+LLP\b/g,
-  // "XYZ Corporation" / "XYZ Inc."
+  
   /\b([A-Z][a-zA-Z&.'()-]+(?:\s+[A-Z][a-zA-Z&.'()-]+){0,5})\s+(?:Corporation|Inc\.?|Incorporated)\b/g,
-  // "XYZ N.A." (for banks like Citibank N.A.)
+  
   /\b([A-Z][a-zA-Z&.'()-]+(?:\s+[A-Z][a-zA-Z&.'()-]+){0,3})\s+N\.?\s*A\.?\b/g,
-  // "XYZ & Associates" or "XYZ & Co."
+  
   /\b([A-Z][a-zA-Z&.'()-]+(?:\s+[A-Z][a-zA-Z&.'()-]+){0,3})\s+&\s+(?:Associates|Co\.?)\b/g
 ];
 
-/**
- * Government/regulatory bodies that should NOT be redacted.
- * These are public entities whose names are not PII.
- */
 const EXCLUDED_ORGS = new Set([
   'securities and exchange board of india',
   'reserve bank of india',
@@ -60,9 +38,6 @@ const EXCLUDED_ORGS = new Set([
   'solar energy corporation'
 ]);
 
-/**
- * Terms that are NOT company names, even with suffix matches.
- */
 const FALSE_POSITIVE_COMPANIES = new Set([
   'private limited',
   'public limited',
@@ -90,31 +65,20 @@ class CompanyDetector extends BaseDetector {
     this.knownCompanies = new Set();
   }
 
-  /**
-   * @param {string} text
-   * @returns {Array<object>}
-   */
-  detect(text) {
+    detect(text) {
     const detections = [];
     const seen = new Set();
 
-    // Pass 1: Suffix-based detection
     this._detectBySuffix(text, detections, seen);
 
-    // Pass 2: Context-driven detection
     this._detectFromContext(text, detections, seen);
 
-    // Pass 3: Search for known companies
     this._searchForKnownCompanies(text, detections, seen);
 
     return detections;
   }
 
-  /**
-   * Find companies by organizational suffix (Limited, LLP, etc.)
-   * @private
-   */
-  _detectBySuffix(text, detections, seen) {
+    _detectBySuffix(text, detections, seen) {
     for (const pattern of COMPANY_SUFFIX_PATTERNS) {
       let match;
       pattern.lastIndex = 0;
@@ -123,14 +87,12 @@ class CompanyDetector extends BaseDetector {
         const start = match.index + match[0].indexOf(value);
         let end = start + value.length;
 
-        // Clean newlines
-        if (/\n\s*\n/.test(value)) continue; // reject if crosses paragraphs
+        if (/\n\s*\n/.test(value)) continue; 
         value = value.replace(/\n+/g, ' ').replace(/\s+/g, ' ');
 
         if (this._isFalsePositive(value)) continue;
         if (this._isExcludedOrg(value)) continue;
 
-        // Strip leading articles/prepositions that might have been caught
         let cleanValue = value.replace(/^(The|A|An|Our|To|For|Of|In|By|With)\s+/i, '');
         
         // Find the actual start/end in the original text of the cleaned value
@@ -181,7 +143,6 @@ class CompanyDetector extends BaseDetector {
       detections.push(this.buildDetection(value, start, end, 0.88, text));
     }
 
-    // Bank names: "XYZ Bank" pattern
     const bankRegex = /\b([A-Z][a-zA-Z&.'()-]+(?:\s+[A-Z][a-zA-Z&.'()-]+){0,3}\s+Bank(?:\s+(?:Limited|Ltd\.?|of\s+India))?)\b/g;
     while ((match = bankRegex.exec(text)) !== null) {
       let value = match[0].trim();
@@ -196,9 +157,8 @@ class CompanyDetector extends BaseDetector {
       if (value.split(/\s+/).length < 2) continue;
       if (this._isFalsePositive(value)) continue;
 
-      // Skip "Reserve Bank of India" and similar regulatory bodies
       if (/reserve\s+bank/i.test(value)) continue;
-      if (/state\s+bank/i.test(value)) continue; // Generally considered public entity, but let's see. Assignment mentions SBI IFB. Wait, SBI is a bank, we should redact bank names used as bankers to the company. I'll leave SBI in.
+      if (/state\s+bank/i.test(value)) continue; 
 
       seen.add(key);
       this.knownCompanies.add(value);
@@ -206,14 +166,10 @@ class CompanyDetector extends BaseDetector {
     }
   }
 
-  /**
-   * Search for all known companies throughout the document.
-   * @private
-   */
-  _searchForKnownCompanies(text, detections, seen) {
+    _searchForKnownCompanies(text, detections, seen) {
     for (const company of this.knownCompanies) {
       const escaped = company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // Search case insensitively because companies can be written in ALL CAPS
+      
       const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
       let match;
       while ((match = regex.exec(text)) !== null) {
@@ -228,11 +184,7 @@ class CompanyDetector extends BaseDetector {
     }
   }
 
-  /**
-   * Remove prefixes like "Offer Escrow Collection Bank" from captured companies
-   * @private
-   */
-  _trimGenericPrefixes(name) {
+    _trimGenericPrefixes(name) {
     const prefixes = [
       /^(?:Offer\s+)?Escrow\s+Collection\s+Bank\s+/i,
       /^(?:Public\s+)?Offer\s+Account\s+Bank\s+/i,
@@ -263,10 +215,7 @@ class CompanyDetector extends BaseDetector {
     return false;
   }
 
-  /**
-   * @private
-   */
-  _isExcludedOrg(name) {
+    _isExcludedOrg(name) {
     const lower = name.toLowerCase().trim();
     return [...EXCLUDED_ORGS].some(org => lower.includes(org));
   }

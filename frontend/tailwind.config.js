@@ -1,4 +1,3 @@
-/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -23,8 +22,8 @@ export default {
           900: '#0f172a',
         },
         primary: {
-          500: '#2563eb', // blue-600
-          600: '#1d4ed8', // blue-700
+          500: '#2563eb', 
+          600: '#1d4ed8', 
         }
       }
     },

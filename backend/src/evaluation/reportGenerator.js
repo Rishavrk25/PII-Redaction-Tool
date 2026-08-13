@@ -1,22 +1,7 @@
-/**
- * Report generator for evaluation results.
- * Creates a detailed Markdown report with per-type and overall metrics.
- * @module evaluation/reportGenerator
- */
 
 const fs = require('fs');
 const path = require('path');
 
-/**
- * Generate an evaluation report in Markdown format.
- * @param {object} params
- * @param {object} params.perTypeMetrics - { TYPE: { tp, fp, fn, precision, recall, f1 } }
- * @param {object} params.overallMetrics - { tp, fp, fn, precision, recall, f1, accuracy }
- * @param {object} params.groundTruth - Ground truth data
- * @param {Array<string>} params.falsePositiveExamples - Examples of false positives
- * @param {Array<string>} params.falseNegativeExamples - Examples of false negatives
- * @param {string} params.outputPath - Where to write the report
- */
 function generateReport({
   perTypeMetrics,
   overallMetrics,

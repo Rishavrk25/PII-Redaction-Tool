@@ -1,13 +1,3 @@
-/**
- * Evaluator — compares detector output against ground truth.
- *
- * Can be run standalone:
- *   node src/evaluation/evaluator.js
- *
- * Or used programmatically within the pipeline.
- *
- * @module evaluation/evaluator
- */
 
 const fs = require('fs');
 const path = require('path');
@@ -17,14 +7,6 @@ const { generateReport } = require('./reportGenerator');
 const config = require('../../config/default');
 const log = require('../utils/logging');
 
-/**
- * Run the evaluation pipeline.
- * @param {object} [options]
- * @param {string} [options.inputPath] - DOCX to evaluate
- * @param {string} [options.groundTruthPath] - Ground truth JSON
- * @param {string} [options.reportPath] - Where to write the evaluation report
- * @returns {Promise<object>} Evaluation results
- */
 async function evaluate(options = {}) {
   const inputPath = options.inputPath || path.resolve(__dirname, '../../input/Red Herring Prospectus(1).docx');
   const groundTruthPath = options.groundTruthPath || path.resolve(__dirname, '../../evaluation/ground_truth.json');
@@ -32,14 +14,12 @@ async function evaluate(options = {}) {
 
   log.info('=== PII Detection Evaluation ===');
 
-  // Load ground truth
   if (!fs.existsSync(groundTruthPath)) {
     throw new Error(`Ground truth not found: ${groundTruthPath}`);
   }
   const groundTruth = JSON.parse(fs.readFileSync(groundTruthPath, 'utf8'));
   log.info(`Loaded ground truth from: ${groundTruthPath}`);
 
-  // Run detection (dry run — no modification)
   const result = await redact({
     input: inputPath,
     dryRun: true,
@@ -47,7 +27,6 @@ async function evaluate(options = {}) {
     verbose: false,
   });
 
-  // Group detections by type
   const predictionsByType = {};
   for (const detection of result.detections) {
     if (!predictionsByType[detection.type]) {
@@ -56,12 +35,10 @@ async function evaluate(options = {}) {
     predictionsByType[detection.type].push(detection.value);
   }
 
-  // Deduplicate predictions for evaluation (we evaluate unique entities, not occurrences)
   for (const type of Object.keys(predictionsByType)) {
     predictionsByType[type] = [...new Set(predictionsByType[type].map(v => v.trim()))];
   }
 
-  // Calculate per-type metrics
   const perTypeMetrics = {};
   const allTypes = new Set([...Object.keys(groundTruth), ...Object.keys(predictionsByType)]);
 
@@ -79,7 +56,6 @@ async function evaluate(options = {}) {
              `P=${(metrics.precision * 100).toFixed(1)}%, R=${(metrics.recall * 100).toFixed(1)}%, ` +
              `F1=${(metrics.f1 * 100).toFixed(1)}%`);
 
-    // Collect FP/FN examples for the report
     if (metrics.fp > 0) {
       const gtSet = new Set(gt.map(v => v.toLowerCase().trim()));
       const fpExamples = preds
@@ -100,7 +76,6 @@ async function evaluate(options = {}) {
     }
   }
 
-  // Calculate overall metrics
   const overallMetrics = calculateOverallMetrics(perTypeMetrics);
 
   log.info('');

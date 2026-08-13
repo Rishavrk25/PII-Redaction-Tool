@@ -1,17 +1,3 @@
-/**
- * Main redactor pipeline.
- *
- * Orchestrates the full PII detection and redaction process:
- *   1. Read DOCX → extract text
- *   2. Run all enabled detectors
- *   3. Resolve conflicts
- *   4. Filter by confidence threshold
- *   5. Generate synthetic replacements
- *   6. Apply replacements to DOCX XML
- *   7. Write output files (redacted DOCX + audit report)
- *
- * @module redactor
- */
 
 const { extractText, readDocxAsZip, getTextXMLFiles } = require('./document/reader');
 const { applyReplacements, writeDocx } = require('./document/writer');
@@ -22,7 +8,6 @@ const config = require('../config/default');
 const fs = require('fs');
 const path = require('path');
 
-// Import all detectors
 const EmailDetector = require('./detectors/emailDetector');
 const PhoneDetector = require('./detectors/phoneDetector');
 const SSNDetector = require('./detectors/ssnDetector');
@@ -33,17 +18,6 @@ const PersonDetector = require('./detectors/personDetector');
 const CompanyDetector = require('./detectors/companyDetector');
 const AddressDetector = require('./detectors/addressDetector');
 
-/**
- * Run the full redaction pipeline.
- * @param {object} options
- * @param {string} options.input - Input DOCX path
- * @param {string} [options.output] - Output DOCX path
- * @param {number} [options.threshold] - Confidence threshold
- * @param {boolean} [options.dryRun] - If true, detect but don't modify
- * @param {string} [options.report] - Audit report output path
- * @param {boolean} [options.verbose] - Enable verbose logging
- * @returns {Promise<object>} Detection results and statistics
- */
 async function redact(options) {
   const {
     input,
@@ -60,25 +34,20 @@ async function redact(options) {
   log.info(`Threshold: ${threshold}`);
   log.info(`Mode: ${dryRun ? 'DRY RUN' : 'REDACT'}`);
 
-  // Step 1: Extract text
   const text = await extractText(input);
 
-  // Step 2: Run detectors
   log.info('Running PII detectors...');
   const allDetections = runDetectors(text);
   log.info(`Total raw detections: ${allDetections.length}`);
 
-  // Step 3: Resolve conflicts
   const resolved = resolveConflicts(allDetections);
   log.info(`After conflict resolution: ${resolved.length}`);
 
-  // Step 4: Filter by threshold
   const filtered = resolved.filter(d => d.confidence >= threshold);
   const belowThreshold = resolved.filter(d => d.confidence < threshold);
   log.info(`Above threshold (${threshold}): ${filtered.length}`);
   log.info(`Below threshold: ${belowThreshold.length}`);
 
-  // Log detections by type
   const byType = {};
   filtered.forEach(d => {
     byType[d.type] = (byType[d.type] || 0) + 1;
@@ -88,12 +57,10 @@ async function redact(options) {
     log.info(`  ${type}: ${count}`);
   });
 
-  // Log individual detections in verbose mode
   if (verbose) {
     filtered.forEach(d => log.logDetection(d));
   }
 
-  // Step 5: Generate replacements
   log.info('Generating synthetic replacements...');
   const replacementManager = new ReplacementManager();
   const replacements = [];
@@ -108,11 +75,9 @@ async function redact(options) {
     });
   }
 
-  // Deduplicate replacements (same original → same replacement)
   const uniqueReplacements = deduplicateReplacements(replacements);
   log.info(`Unique replacement mappings: ${uniqueReplacements.length}`);
 
-  // Step 6: Apply to DOCX (unless dry run)
   if (!dryRun && output) {
     log.info('Applying replacements to DOCX...');
     await applyToDocx(input, output, uniqueReplacements);
@@ -128,7 +93,6 @@ async function redact(options) {
     });
   }
 
-  // Step 7: Generate audit report
   const auditReport = generateAuditReport(filtered, belowThreshold, replacementManager);
   if (report && !dryRun) {
     writeAuditReport(report, auditReport);
@@ -142,15 +106,10 @@ async function redact(options) {
     replacements: uniqueReplacements,
     auditReport,
     byType,
-    text, // For evaluation
+    text, 
   };
 }
 
-/**
- * Run all enabled detectors against the text.
- * @param {string} text
- * @returns {Array<object>}
- */
 function runDetectors(text) {
   const detectors = [];
 
@@ -180,12 +139,6 @@ function runDetectors(text) {
   return allDetections;
 }
 
-/**
- * Apply replacements to a DOCX file and write the output.
- * @param {string} inputPath
- * @param {string} outputPath
- * @param {Array<{original: string, replacement: string}>} replacements
- */
 async function applyToDocx(inputPath, outputPath, replacements) {
   const zip = await readDocxAsZip(inputPath);
   const xmlFiles = await getTextXMLFiles(zip);
@@ -199,11 +152,6 @@ async function applyToDocx(inputPath, outputPath, replacements) {
   await writeDocx(zip, outputPath);
 }
 
-/**
- * Deduplicate replacements so each unique original maps to one replacement.
- * @param {Array} replacements
- * @returns {Array}
- */
 function deduplicateReplacements(replacements) {
   const seen = new Map();
   const unique = [];
@@ -218,13 +166,6 @@ function deduplicateReplacements(replacements) {
   return unique;
 }
 
-/**
- * Generate the audit report object.
- * @param {Array} detections
- * @param {Array} belowThreshold
- * @param {ReplacementManager} replacementManager
- * @returns {object}
- */
 function generateAuditReport(detections, belowThreshold, replacementManager) {
   const byType = {};
   detections.forEach(d => {
@@ -242,7 +183,7 @@ function generateAuditReport(detections, belowThreshold, replacementManager) {
       type: d.type,
       confidence: d.confidence,
       detector: d.detector,
-      // Privacy: use hashed identifier instead of raw value
+      
       entityHash: require('crypto')
         .createHash('sha256')
         .update(d.value)

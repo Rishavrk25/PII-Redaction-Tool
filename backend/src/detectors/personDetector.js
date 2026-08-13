@@ -1,32 +1,13 @@
-/**
- * Person name detector.
- *
- * Hybrid approach (no external NER):
- *   1. Context-driven: extract names after labels like "Contact Person:", "Director:", etc.
- *   2. Title-driven: "Mr./Mrs./Dr. FirstName LastName"
- *   3. Slash-separated names: "Eric Bacha/ Sachin Gawade/ Pravin Teli"
- *   4. Known-name seeding: after first pass, search for discovered names everywhere
- *
- * Does NOT treat every capitalized phrase as a name.
- *
- * @module detectors/personDetector
- */
 
 const BaseDetector = require('./baseDetector');
 
-/**
- * A proper person name: 2-4 capitalized words, each starting with uppercase
- * followed by lowercase letters. Minimum 2 characters per word.
- */
 const STRICT_NAME_REGEX = /([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}){1,3})/;
 
-/** Labels that strongly signal the next capitalized phrase is a person name */
 const PERSON_LABELS_WITH_COLON = [
   { regex: /Contact\s+Person\s*:\s*/gi, confidence: 0.93 },
   { regex: /Contact\s+Person\s*:\s*(?:[A-Z][a-z]+\s+)*?/gi, confidence: 0.93 },
 ];
 
-/** Pattern: "Name, Role" where Role is a known designation */
 const ROLE_SUFFIXES = [
   'Company Secretary and Compliance Officer',
   'Company Secretary',
@@ -47,10 +28,6 @@ const ROLE_SUFFIXES = [
   'Promoter Selling Shareholder',
 ];
 
-/**
- * Common words/phrases that look like names but aren't.
- * Only exact matches after normalization.
- */
 const FALSE_POSITIVE_NAMES = new Set([
   'red herring', 'fresh issue', 'offer price', 'price band',
   'equity shares', 'face value', 'net proceeds', 'offer for',
@@ -85,41 +62,25 @@ const FALSE_POSITIVE_NAMES = new Set([
 class PersonDetector extends BaseDetector {
   constructor() {
     super('PERSON', 'person-context');
-    /** @type {Set<string>} Names discovered in Pass 1, searched globally in Pass 2 */
-    this.knownNames = new Set();
+        this.knownNames = new Set();
   }
 
-  /**
-   * Two-pass detection:
-   *   Pass 1: Find names via context labels, "Name, Role" patterns, title prefixes, and slash patterns
-   *   Pass 2: Search for all discovered names throughout the text
-   *
-   * @param {string} text
-   * @returns {Array<object>}
-   */
-  detect(text) {
+    detect(text) {
     const detections = [];
-    const seen = new Set(); // "start-end" keys
+    const seen = new Set(); 
 
-    // Pass 1
     this._detectNameCommaRole(text, detections, seen);
     this._detectContactPerson(text, detections, seen);
     this._detectSlashNames(text, detections, seen);
     this._detectTitlePrefixed(text, detections, seen);
     this._detectPromoterNames(text, detections, seen);
 
-    // Pass 2
     this._searchKnownNames(text, detections, seen);
 
     return detections;
   }
 
-  /**
-   * Detect "FirstName LastName, Role" patterns.
-   * E.g., "Sarthak Malvadkar, Company Secretary and Compliance Officer"
-   * @private
-   */
-  _detectNameCommaRole(text, detections, seen) {
+    _detectNameCommaRole(text, detections, seen) {
     for (const suffix of ROLE_SUFFIXES) {
       const escaped = suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(
@@ -138,11 +99,7 @@ class PersonDetector extends BaseDetector {
     }
   }
 
-  /**
-   * Detect names after "Contact Person:" labels.
-   * @private
-   */
-  _detectContactPerson(text, detections, seen) {
+    _detectContactPerson(text, detections, seen) {
     const regex = /Contact\s+Person\s*:\s*([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}){1,3})/gi;
     let match;
     while ((match = regex.exec(text)) !== null) {
@@ -156,11 +113,7 @@ class PersonDetector extends BaseDetector {
     }
   }
 
-  /**
-   * Detect title-prefixed names: "Mr./Mrs./Shri FirstName LastName"
-   * @private
-   */
-  _detectTitlePrefixed(text, detections, seen) {
+    _detectTitlePrefixed(text, detections, seen) {
     const regex = /\b(?:Mr\.?|Mrs\.?|Ms\.?|Dr\.?|Shri\.?|Smt\.?)\s+([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}){1,3})\b/g;
     let match;
     while ((match = regex.exec(text)) !== null) {
@@ -174,13 +127,8 @@ class PersonDetector extends BaseDetector {
     }
   }
 
-  /**
-   * Detect slash-separated name lists from "Contact Person:" sections.
-   * E.g., "Contact Person: Eric Bacha/ Sachin Gawade/ Pravin Teli/ Siddharth Jadhav/ Tushar Gavankar"
-   * @private
-   */
-  _detectSlashNames(text, detections, seen) {
-    // Slash-separated names preceded by a role/contact context
+    _detectSlashNames(text, detections, seen) {
+    
     const regex = /Contact\s+Person\s*:\s*((?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\s*\/\s*)*[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/gi;
     let match;
     while ((match = regex.exec(text)) !== null) {
@@ -197,7 +145,6 @@ class PersonDetector extends BaseDetector {
       }
     }
 
-    // Also detect standalone "Name1/ Name2" patterns
     const slashRegex = /\b([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*\/\s*([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
     while ((match = slashRegex.exec(text)) !== null) {
       for (let i = 1; i <= 2; i++) {
@@ -211,24 +158,19 @@ class PersonDetector extends BaseDetector {
     }
   }
 
-  /**
-   * Detect person names from "OUR PROMOTERS:" lists.
-   * @private
-   */
-  _detectPromoterNames(text, detections, seen) {
+    _detectPromoterNames(text, detections, seen) {
     const regex = /OUR\s+PROMOTERS\s*:\s*([^\n]+(?:\n[^\n]{5,})*)/gi;
     let match;
     while ((match = regex.exec(text)) !== null) {
       const section = match[1];
-      // Split by commas and "AND"
+      
       const parts = section.split(/\s*,\s*|\s+AND\s+/i);
       for (const part of parts) {
         const trimmed = part.trim();
-        // Skip trusts, companies, etc.
+        
         if (/TRUST|LIMITED|PRIVATE|LTD|LLP|COMPANY|CORPORATION|PARK/i.test(trimmed)) continue;
         if (trimmed.length < 5 || trimmed.length > 50) continue;
 
-        // Convert ALL CAPS to Title Case
         const titleCase = trimmed.replace(/\b\w+/g, w =>
           w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
         );
@@ -242,15 +184,10 @@ class PersonDetector extends BaseDetector {
     }
   }
 
-  /**
-   * Pass 2: Search for all known names throughout the text.
-   * @private
-   */
-  _searchKnownNames(text, detections, seen) {
+    _searchKnownNames(text, detections, seen) {
     for (const name of this.knownNames) {
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-      // Normal case match
       const regex = new RegExp(`\\b${escaped}\\b`, 'g');
       let match;
       while ((match = regex.exec(text)) !== null) {
@@ -259,7 +196,6 @@ class PersonDetector extends BaseDetector {
         this._addDetection(match[0], start, end, 0.85, text, detections, seen);
       }
 
-      // ALL CAPS match (for promoter sections in uppercase)
       const upperName = name.toUpperCase();
       const upperEscaped = upperName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const upperRegex = new RegExp(`\\b${upperEscaped}\\b`, 'g');
@@ -267,19 +203,14 @@ class PersonDetector extends BaseDetector {
         const start = match.index;
         const end = start + match[0].length;
 
-        // Only accept ALL-CAPS names in clearly person-related context
         if (!this._isInPersonContext(text, start)) continue;
         this._addDetection(match[0], start, end, 0.82, text, detections, seen);
       }
     }
   }
 
-  /**
-   * Add a detection if it passes validation and hasn't been seen.
-   * @private
-   */
-  _addDetection(name, start, end, confidence, text, detections, seen) {
-    // Clean up the name: remove newlines at start/end, replace internal newlines with space
+    _addDetection(name, start, end, confidence, text, detections, seen) {
+    
     let cleanName = name.replace(/^[\s\n]+|[\s\n]+$/g, '').replace(/\n+/g, ' ').replace(/[*^&]/g, '').trim();
     
     // Check if the clean name is just a fragment of the original match
@@ -320,31 +251,23 @@ class PersonDetector extends BaseDetector {
     if (words.length < 2 || words.length > 4) return false;
     if (words.some(w => w.replace(/[*^&.]/g, '').length < 2)) return false;
 
-    // Each word should start with a capital letter (or be ALL CAPS)
     const isAllCaps = name === name.toUpperCase();
     if (!isAllCaps) {
       if (!words.every(w => /^[A-Z]/.test(w))) return false;
     }
 
-    // Reject if it contains numbers
     if (/\d/.test(name)) return false;
 
-    // Reject common non-name phrases
     if (/\b(the|of|and|or|in|on|at|to|for|from|by|with|our|their|its|this|that|such|any|all|no|not)\b/i.test(name)) {
       return false;
     }
 
-    // Too long
     if (name.length > 50) return false;
 
     return true;
   }
 
-  /**
-   * Check if a position is in a person-related context.
-   * @private
-   */
-  _isInPersonContext(text, position) {
+    _isInPersonContext(text, position) {
     const before = text.substring(Math.max(0, position - 200), position).toLowerCase();
     const after = text.substring(position, Math.min(text.length, position + 200)).toLowerCase();
     const window = before + after;

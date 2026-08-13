@@ -1,13 +1,4 @@
-/**
- * Validation utilities for structured PII formats.
- * @module utils/validation
- */
 
-/**
- * Validate a credit card number using the Luhn algorithm.
- * @param {string} number - Digits-only card number string
- * @returns {boolean} True if the number passes Luhn check
- */
 function luhnCheck(number) {
   const digits = number.replace(/\D/g, '');
   if (digits.length < 13 || digits.length > 19) return false;
@@ -48,42 +39,21 @@ function isValidIPv4(ip) {
   });
 }
 
-/**
- * Validate a basic email format.
- * @param {string} email
- * @returns {boolean}
- */
 function isValidEmail(email) {
-  // RFC-5322-ish but practical
+  
   const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return re.test(email);
 }
 
-/**
- * Validate an Indian PIN code (6 digits, first digit 1–9).
- * @param {string} pin
- * @returns {boolean}
- */
 function isValidIndianPIN(pin) {
   const digits = pin.replace(/\s/g, '');
   return /^[1-9]\d{5}$/.test(digits);
 }
 
-/**
- * Check if a string looks like a financial amount (has currency symbols, commas in thousands).
- * Used to reject false-positive detections.
- * @param {string} context - Surrounding text
- * @returns {boolean}
- */
 function looksLikeFinancialAmount(context) {
   return /[₹$€£]|million|crore|lakh|billion|per\s+share|face\s+value|aggregat/i.test(context);
 }
 
-/**
- * Check if a string looks like a regulatory/legal number.
- * @param {string} context
- * @returns {boolean}
- */
 function looksLikeRegulatoryNumber(context) {
   return /\b(SEBI|CIN|PAN|TAN|GSTIN|registration\s+number|certificate|form\s+\d|section\s+\d|regulation|rule)/i.test(context);
 }
