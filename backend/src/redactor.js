@@ -37,7 +37,7 @@ async function redact(options) {
   const text = await extractText(input);
 
   log.info('Running PII detectors...');
-  const allDetections = runDetectors(text);
+  const allDetections = await runDetectors(text);
   log.info(`Total raw detections: ${allDetections.length}`);
 
   const resolved = resolveConflicts(allDetections);
@@ -110,7 +110,7 @@ async function redact(options) {
   };
 }
 
-function runDetectors(text) {
+async function runDetectors(text) {
   const detectors = [];
 
   if (config.detectors.email) detectors.push(new EmailDetector());
@@ -134,6 +134,7 @@ function runDetectors(text) {
     } catch (err) {
       log.error(`Detector ${detector.name} failed: ${err.message}`);
     }
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   return allDetections;
@@ -147,6 +148,7 @@ async function applyToDocx(inputPath, outputPath, replacements) {
     log.debug(`Processing: ${xmlFile.name}`);
     const modified = applyReplacements(xmlFile.content, replacements);
     zip.file(xmlFile.name, modified);
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 
   await writeDocx(zip, outputPath);
