@@ -60,19 +60,36 @@ function App() {
 
     try {
       const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
-      const response = await fetch(`${apiUrl}/api/redact`, {
+
+      const submitRes = await fetch(`${apiUrl}/api/redact`, {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process document');
+      if (!submitRes.ok) {
+        const errorData = await submitRes.json();
+        throw new Error(errorData.error || 'Failed to submit document');
       }
 
-      const data = await response.json();
-      setResult(data);
-      setStatus('success');
+      const { jobId } = await submitRes.json();
+
+      const poll = async () => {
+        while (true) {
+          await new Promise(r => setTimeout(r, 3000));
+          const statusRes = await fetch(`${apiUrl}/api/status/${jobId}`);
+          const job = await statusRes.json();
+
+          if (job.status === 'done') {
+            setResult(job.result);
+            setStatus('success');
+            return;
+          } else if (job.status === 'error') {
+            throw new Error(job.error || 'Redaction failed on server');
+          }
+        }
+      };
+
+      await poll();
     } catch (err) {
       console.error(err);
       setErrorMsg(err.message);
