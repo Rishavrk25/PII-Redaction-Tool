@@ -4,7 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { Worker } = require('worker_threads');
+const { redact } = require('./redactor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,57 +55,47 @@ app.post('/api/redact', upload.single('document'), (req, res) => {
   const threshold = req.body.threshold ? parseFloat(req.body.threshold) : undefined;
   const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 
+  jobs.set(jobId, { status: 'processing', startedAt: Date.now() });
+
+  res.json({ jobId });
+
   const inputPath = req.file.path;
   const outputFileName = `redacted-${path.parse(req.file.originalname).name}-${Date.now()}.docx`;
   const outputPath = path.join(outputDir, outputFileName);
   const reportFileName = `report-${Date.now()}.json`;
   const reportPath = path.join(outputDir, reportFileName);
 
-  jobs.set(jobId, { status: 'processing', startedAt: Date.now() });
+  setImmediate(async () => {
+    try {
+      const result = await redact({
+        input: inputPath,
+        output: outputPath,
+        threshold,
+        report: reportPath,
+        verbose: false,
+      });
 
-  res.json({ jobId });
+      fs.unlink(inputPath, () => {});
 
-  const worker = new Worker(path.join(__dirname, 'worker.js'), {
-    workerData: {
-      input: inputPath,
-      output: outputPath,
-      threshold,
-      report: reportPath,
-      verbose: false,
-    },
-    resourceLimits: {
-      maxOldGenerationSizeMb: 384,
-      maxYoungGenerationSizeMb: 48,
-    }
-  });
-
-  worker.on('message', (msg) => {
-    fs.unlink(inputPath, () => {});
-
-    if (msg.status === 'done') {
       jobs.set(jobId, {
         status: 'done',
         result: {
           message: 'Redaction successful',
-          auditReport: msg.result.auditReport,
+          auditReport: result.auditReport,
           summary: {
-            totalDetections: msg.result.detections,
-            byType: msg.result.byType,
-            uniqueReplacements: msg.result.replacements
+            totalDetections: result.detections,
+            byType: result.byType,
+            uniqueReplacements: result.replacements
           },
           downloadUrl: `/download/${outputFileName}`,
           reportUrl: `/download/${reportFileName}`
         }
       });
-    } else {
-      jobs.set(jobId, { status: 'error', error: msg.error });
+    } catch (error) {
+      fs.unlink(inputPath, () => {});
+      console.error('Redaction error:', error);
+      jobs.set(jobId, { status: 'error', error: error.message });
     }
-  });
-
-  worker.on('error', (err) => {
-    fs.unlink(inputPath, () => {});
-    console.error('Worker error:', err);
-    jobs.set(jobId, { status: 'error', error: err.message });
   });
 });
 

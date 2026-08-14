@@ -34,11 +34,13 @@ async function redact(options) {
   log.info(`Threshold: ${threshold}`);
   log.info(`Mode: ${dryRun ? 'DRY RUN' : 'REDACT'}`);
 
-  const text = await extractText(input);
+  let text = await extractText(input);
 
   log.info('Running PII detectors...');
   const allDetections = await runDetectors(text);
   log.info(`Total raw detections: ${allDetections.length}`);
+
+  text = null;
 
   const resolved = resolveConflicts(allDetections);
   log.info(`After conflict resolution: ${resolved.length}`);
@@ -47,6 +49,8 @@ async function redact(options) {
   const belowThresholdCount = resolved.filter(d => d.confidence < threshold).length;
   log.info(`Above threshold (${threshold}): ${filtered.length}`);
   log.info(`Below threshold: ${belowThresholdCount}`);
+
+  filtered.forEach(d => { delete d.context; });
 
   const byType = {};
   filtered.forEach(d => {
@@ -93,7 +97,7 @@ async function redact(options) {
     });
   }
 
-  const auditReport = generateAuditReport(filtered, belowThreshold, replacementManager);
+  const auditReport = generateAuditReport(filtered, belowThresholdCount, replacementManager);
   if (report && !dryRun) {
     writeAuditReport(report, auditReport);
   }
