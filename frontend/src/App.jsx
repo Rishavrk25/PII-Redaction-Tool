@@ -11,7 +11,7 @@ function App() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
     fetch(`${apiUrl}/api/health`).catch(() => console.log('Waking up backend...'));
   }, []);
 
@@ -59,7 +59,7 @@ function App() {
     formData.append('threshold', threshold.toString());
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
       const response = await fetch(`${apiUrl}/api/redact`, {
         method: 'POST',
         body: formData,
@@ -184,14 +184,14 @@ function App() {
 
                 <div className="flex gap-4">
                   <a 
-                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${result.downloadUrl}`}
+                    href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}${result.downloadUrl}`}
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     <Download size={18} />
                     Download Redacted DOCX
                   </a>
                   <a 
-                    href={`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${result.reportUrl}`}
+                    href={`${(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')}${result.reportUrl}`}
                     className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 px-5 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm"
                   >
                     <Download size={18} />
