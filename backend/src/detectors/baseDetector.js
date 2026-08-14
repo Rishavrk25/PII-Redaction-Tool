@@ -24,7 +24,7 @@ class BaseDetector {
   }
 
     extractContext(text, start, end) {
-    const window = config.contextWindow || 60;
+    const window = 20;
     const ctxStart = Math.max(0, start - window);
     const ctxEnd = Math.min(text.length, end + window);
     let ctx = text.substring(ctxStart, ctxEnd).replace(/\n+/g, ' ').trim();

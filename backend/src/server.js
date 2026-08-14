@@ -72,6 +72,10 @@ app.post('/api/redact', upload.single('document'), (req, res) => {
       threshold,
       report: reportPath,
       verbose: false,
+    },
+    resourceLimits: {
+      maxOldGenerationSizeMb: 384,
+      maxYoungGenerationSizeMb: 48,
     }
   });
 

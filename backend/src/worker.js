@@ -8,9 +8,9 @@ const { redact } = require('./redactor');
     parentPort.postMessage({
       status: 'done',
       result: {
-        detections: result.detections.length,
+        detections: result.detections,
         byType: result.byType,
-        replacements: result.replacements.length,
+        replacements: result.replacements,
         auditReport: result.auditReport,
       }
     });

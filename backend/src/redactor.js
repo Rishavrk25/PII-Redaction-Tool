@@ -44,9 +44,9 @@ async function redact(options) {
   log.info(`After conflict resolution: ${resolved.length}`);
 
   const filtered = resolved.filter(d => d.confidence >= threshold);
-  const belowThreshold = resolved.filter(d => d.confidence < threshold);
+  const belowThresholdCount = resolved.filter(d => d.confidence < threshold).length;
   log.info(`Above threshold (${threshold}): ${filtered.length}`);
-  log.info(`Below threshold: ${belowThreshold.length}`);
+  log.info(`Below threshold: ${belowThresholdCount}`);
 
   const byType = {};
   filtered.forEach(d => {
@@ -101,12 +101,10 @@ async function redact(options) {
   log.info('=== Redaction complete ===');
 
   return {
-    detections: filtered,
-    belowThreshold,
-    replacements: uniqueReplacements,
+    detections: filtered.length,
+    replacements: uniqueReplacements.length,
     auditReport,
     byType,
-    text, 
   };
 }
 
@@ -168,7 +166,7 @@ function deduplicateReplacements(replacements) {
   return unique;
 }
 
-function generateAuditReport(detections, belowThreshold, replacementManager) {
+function generateAuditReport(detections, belowThresholdCount, replacementManager) {
   const byType = {};
   detections.forEach(d => {
     byType[d.type] = (byType[d.type] || 0) + 1;
@@ -177,7 +175,7 @@ function generateAuditReport(detections, belowThreshold, replacementManager) {
   return {
     summary: {
       totalDetections: detections.length,
-      belowThresholdCount: belowThreshold.length,
+      belowThresholdCount,
       byType,
       uniqueEntities: replacementManager.getCounts(),
     },
@@ -185,16 +183,12 @@ function generateAuditReport(detections, belowThreshold, replacementManager) {
       type: d.type,
       confidence: d.confidence,
       detector: d.detector,
-      
       entityHash: require('crypto')
         .createHash('sha256')
         .update(d.value)
         .digest('hex')
         .substring(0, 12),
       position: { start: d.start, end: d.end },
-      contextPreview: d.context
-        ? d.context.substring(0, 80) + (d.context.length > 80 ? '...' : '')
-        : '',
     })),
   };
 }
