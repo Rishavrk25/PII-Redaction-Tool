@@ -4,7 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { redact } = require('./redactor');
+const { Worker } = require('worker_threads');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,48 +55,53 @@ app.post('/api/redact', upload.single('document'), (req, res) => {
   const threshold = req.body.threshold ? parseFloat(req.body.threshold) : undefined;
   const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 
-  jobs.set(jobId, { status: 'processing', startedAt: Date.now() });
-
-  res.json({ jobId });
-
   const inputPath = req.file.path;
   const outputFileName = `redacted-${path.parse(req.file.originalname).name}-${Date.now()}.docx`;
   const outputPath = path.join(outputDir, outputFileName);
   const reportFileName = `report-${Date.now()}.json`;
   const reportPath = path.join(outputDir, reportFileName);
 
-  setImmediate(async () => {
-    try {
-      const result = await redact({
-        input: inputPath,
-        output: outputPath,
-        threshold,
-        report: reportPath,
-        verbose: false,
-      });
+  jobs.set(jobId, { status: 'processing', startedAt: Date.now() });
 
-      fs.unlink(inputPath, (err) => {
-        if (err) console.error(`Failed to delete upload: ${err.message}`);
-      });
+  res.json({ jobId });
 
+  const worker = new Worker(path.join(__dirname, 'worker.js'), {
+    workerData: {
+      input: inputPath,
+      output: outputPath,
+      threshold,
+      report: reportPath,
+      verbose: false,
+    }
+  });
+
+  worker.on('message', (msg) => {
+    fs.unlink(inputPath, () => {});
+
+    if (msg.status === 'done') {
       jobs.set(jobId, {
         status: 'done',
         result: {
           message: 'Redaction successful',
-          auditReport: result.auditReport,
+          auditReport: msg.result.auditReport,
           summary: {
-            totalDetections: result.detections.length,
-            byType: result.byType,
-            uniqueReplacements: result.replacements.length
+            totalDetections: msg.result.detections,
+            byType: msg.result.byType,
+            uniqueReplacements: msg.result.replacements
           },
           downloadUrl: `/download/${outputFileName}`,
           reportUrl: `/download/${reportFileName}`
         }
       });
-    } catch (error) {
-      console.error('Redaction error:', error);
-      jobs.set(jobId, { status: 'error', error: error.message });
+    } else {
+      jobs.set(jobId, { status: 'error', error: msg.error });
     }
+  });
+
+  worker.on('error', (err) => {
+    fs.unlink(inputPath, () => {});
+    console.error('Worker error:', err);
+    jobs.set(jobId, { status: 'error', error: err.message });
   });
 });
 
